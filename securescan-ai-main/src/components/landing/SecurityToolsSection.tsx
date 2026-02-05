@@ -29,72 +29,167 @@ const SecurityToolsSection = () => {
   const [analysisResult, setAnalysisResult] = useState<any>(null);
   const { toast } = useToast();
 
-  const handleAnalyze = async () => {
-    if (!code.trim()) {
-      toast({
-        title: "No code provided",
-        description: "Please paste some code to analyze",
-        variant: "destructive",
-      });
-      return;
-    }
+const handleAnalyze = async () => {
+  if (!code.trim()) {
+    toast({
+      title: "No code provided",
+      description: "Please paste some code to analyze",
+      variant: "destructive",
+    });
+    return;
+  }
 
-    setIsAnalyzing(true);
-    setShowResults(false);
+  setIsAnalyzing(true);
+  setShowResults(false);
+  
+  try {
+    // Use the real API with the new working API key
+    const request: ScanRequest = {
+  issue: `Analyze this code for security vulnerabilities:\n\n${code}`,
+  app_type: 'Web Application',
+  tech_stack: 'JavaScript, Node.js, Database',
+  environment: 'Production',
+};
+
+const response = await analyzeSecurityIssueDescription(
+  request.issue,
+  request.app_type,
+  request.tech_stack,
+  request.environment
+);
+
+
     
-    try {
-     
-      const issue = `Analyze this code for security vulnerabilities:\n\n${code}`;
-      const request: ScanRequest = {
-        issue,
-        app_type: 'Web Application',
-        tech_stack: 'JavaScript, Node.js, Database',
-        environment: 'Production'
-      };
-        const response = await analyzeSecurityIssueDescription(
-          request.issue,
-          request.app_type,
-          request.tech_stack,
-          request.environment
-        );
-
+    if (response.success) {
+      // Get the real AI analysis
+      const aiAnalysis = response.data.analysis;
+      console.log('Real AI Analysis received:', aiAnalysis.substring(0, 500) + '...');
       
-      if (response.success) {
-        setAnalysisResult(response.data);
-        setShowResults(true);
-        toast({
-          title: "Analysis Complete",
-          description: `Found ${response.data.severity} severity issue`,
-        });
-      } else {
-        throw new Error("Analysis failed");
-      }
-    } catch (error: any) {
-      toast({
-        title: "Analysis Failed",
-        description: error.message || "Could not analyze the code",
-        variant: "destructive",
-      });
-      // Fallback to mock data for demo
+      // Parse severity from AI response
+      let severity = "MEDIUM";
+      if (aiAnalysis.includes('Critical') || aiAnalysis.includes('CRITICAL')) severity = "CRITICAL";
+      else if (aiAnalysis.includes('High') || aiAnalysis.includes('HIGH')) severity = "HIGH";
+      else if (aiAnalysis.includes('Low') || aiAnalysis.includes('LOW')) severity = "LOW";
+      
+      // Extract a title from the analysis
+      const lines = aiAnalysis.split('\n');
+      const title = lines.find(line => 
+        line.includes('Vulnerability') || 
+        line.includes('Security') || 
+        line.includes('Issue')
+      ) || "Security Analysis";
+      
+      // Format for UI
       setAnalysisResult({
-        severity: "HIGH",
-        title: "SQL Injection Vulnerability",
-        cvss_score: 8.5,
+        severity: severity,
+        title: title.length > 60 ? title.substring(0, 60) + "..." : title,
+        cvss_score: severity === "CRITICAL" ? 9.0 : 
+                   severity === "HIGH" ? 7.5 : 
+                   severity === "MEDIUM" ? 5.0 : 3.0,
         ai_analysis: {
-          secure_fix: 'Use parameterized queries: const user = await db.query("SELECT * FROM users WHERE id = ?", [userId]);',
-          immediate_actions: [
-            "Replace string concatenation with parameterized query",
-            "Add input validation for userId parameter",
-            "Review database permissions"
-          ],
-          risk_explanation: "User input is directly concatenated into SQL query without sanitization, allowing attackers to execute arbitrary SQL commands."
+          secure_fix: extractSecureFix(aiAnalysis),
+          immediate_actions: extractImmediateActions(aiAnalysis),
+          risk_explanation: extractRiskExplanation(aiAnalysis),
+          full_analysis: aiAnalysis
         }
       });
+      
       setShowResults(true);
-    } finally {
-      setIsAnalyzing(false);
+      toast({
+        title: "AI Analysis Complete",
+        description: `Found ${severity.toLowerCase()} severity security issue`,
+      });
+    } else {
+      throw new Error("Analysis failed");
     }
-  };
+  } catch (error: any) {
+    console.error('Analysis error:', error);
+    toast({
+      title: "Analysis Failed",
+      description: error.message || "Could not analyze the code",
+      variant: "destructive",
+    });
+    // Fallback to mock data if needed
+    setAnalysisResult({
+      severity: "HIGH",
+      title: "SQL Injection Vulnerability",
+      cvss_score: 8.5,
+      ai_analysis: {
+        secure_fix: 'Use parameterized queries: const user = await db.query("SELECT * FROM users WHERE id = ?", [userId]);',
+        immediate_actions: [
+          "Replace string concatenation with parameterized query",
+          "Add input validation for userId parameter",
+          "Review database permissions"
+        ],
+        risk_explanation: "User input is directly concatenated into SQL query without sanitization, allowing attackers to execute arbitrary SQL commands."
+      }
+    });
+    setShowResults(true);
+  } finally {
+    setIsAnalyzing(false);
+  }
+};
+
+// Add these helper functions inside the component
+const extractSecureFix = (analysis: string): string => {
+  // Look for code blocks in the analysis
+  const codeBlockMatch = analysis.match(/```[\s\S]*?```/);
+  if (codeBlockMatch) {
+    return codeBlockMatch[0].replace(/```/g, '').trim();
+  }
+  
+  // Look for "Fix:" or "Solution:" sections
+  const fixSection = analysis.split(/Fix:|Solution:|Recommendation:/)[1];
+  if (fixSection) {
+    return fixSection.split('\n')[0].trim();
+  }
+  
+  return "Use parameterized queries and input validation as recommended above";
+};
+
+const extractImmediateActions = (analysis: string): string[] => {
+  const actions: string[] = [];
+  
+  // Look for numbered recommendations
+  const numberMatches = analysis.match(/\d+\.\s*([^\n]+)/g);
+  if (numberMatches) {
+    actions.push(...numberMatches.slice(0, 3).map(a => a.replace(/^\d+\.\s*/, '').trim()));
+  }
+  
+  // Look for bullet points
+  if (actions.length < 3) {
+    const bulletMatches = analysis.match(/\*\s*([^\n]+)/g);
+    if (bulletMatches) {
+      actions.push(...bulletMatches.slice(0, 3).map(b => b.replace(/^\*\s*/, '').trim()));
+    }
+  }
+  
+  if (actions.length === 0) {
+    return [
+      "Implement parameterized database queries",
+      "Add input validation and sanitization",
+      "Review authorization and authentication logic"
+    ];
+  }
+  
+  return actions;
+};
+
+const extractRiskExplanation = (analysis: string): string => {
+  // Get the first substantial paragraph
+  const paragraphs = analysis.split('\n\n');
+  for (const paragraph of paragraphs) {
+    if (paragraph.length > 100 && 
+        !paragraph.includes('```') && 
+        !paragraph.startsWith('#') &&
+        !paragraph.includes('Analysis:')) {
+      return paragraph.trim();
+    }
+  }
+  
+  // Fallback to first 200 characters
+  return analysis.substring(0, 200).trim() + '...';
+};
 
   const getSeverityData = (severity: string) => {
     const upperSeverity = severity.toUpperCase();
