@@ -1,7 +1,7 @@
 # backend/main.py
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routes.scan import router as scan_router
+from backend.routes.scan import router as scan_router ✅
 import uvicorn
 
 app = FastAPI(
