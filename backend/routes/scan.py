@@ -1,6 +1,6 @@
 # backend/routes/scan.py
 from fastapi import APIRouter, HTTPException
-from services.gemini import AISecurityCopilot
+from backend.services.gemini import AISecurityCopilot
 from pydantic import BaseModel
 from typing import Optional
 
