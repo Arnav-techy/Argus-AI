@@ -9,6 +9,7 @@ node_modules/
 .yarn/
 yarn.lock
 package-lock.json
+bun.lockb
 
 # Python
 __pycache__/
@@ -38,7 +39,6 @@ MANIFEST
 venv/
 env/
 ENV/
-.env
 .venv
 env.bak/
 venv.bak/
@@ -49,11 +49,11 @@ pythonenv*
 # ============================================
 
 # Environment variables
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-.env*.local
+.env
+.env.*
+*.env
+**/.env
+**/.env.*
 
 # Secrets and keys
 *.pem
@@ -68,9 +68,17 @@ secrets.yml
 credentials.json
 service-account.json
 firebase.json
+**/*.pem
+**/*.key
+**/*.secret
+**/credentials.json
+**/service-account.json
+**/secrets.yaml
+**/secrets.yml
 
-# Gemini API key (protect this!)
+# Specific API keys
 backend/.env
+securescan-ai-main/.env
 
 # ============================================
 # IDE & EDITOR
@@ -210,4 +218,3 @@ temp/
 *.jar
 *.rar
 *.tar
-*.zip
