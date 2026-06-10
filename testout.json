@@ -1,0 +1,19 @@
+{
+  "success": true,
+  "data": {
+    "title": "Security Issue Analysis",
+    "severity": "MEDIUM",
+    "description": "test",
+    "ai_analysis": {
+      "risk_explanation": "Unable to generate detailed analysis. Please review manually.",
+      "attack_scenario": "Manual investigation required",
+      "secure_fix": "1. Review code/configurations\n2. Apply security patches\n3. Monitor for anomalies",
+      "immediate_actions": [
+        "Manual review needed"
+      ],
+      "compliance_implications": []
+    },
+    "timestamp": "2026-03-31T17:33:39.018776"
+  },
+  "timestamp": "2026-03-31T17:33:39.018776"
+}

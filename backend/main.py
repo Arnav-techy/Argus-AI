@@ -1,4 +1,11 @@
 # backend/main.py
+# pyrefly: ignore [missing-import]
+import sys
+import os
+
+# Add the current directory (backend/) to python path to resolve local imports correctly
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routes.scan import router as scan_router
@@ -10,38 +17,29 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Configure CORS for Next.js frontend
-# Find this section (around line 15-25):
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Change this line
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# Configure CORS
+import os
 
-# aiSecurityCopilot-master/backend/main.py
+allowed_origins_env = os.getenv("ALLOWED_ORIGINS")
 
-# Look for CORS configuration (likely around line 20-30)
-# Update it to include port 8080:
-
-from fastapi.middleware.cors import CORSMiddleware
-
-# Add this after creating the FastAPI app
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        "http://localhost:8080",
-        "http://127.0.0.1:8080",
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-    ],
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],  # Add OPTIONS
-    allow_headers=["*"],  # Or specify: ["Content-Type", "Authorization", "Accept"]
-    expose_headers=["*"],
-    max_age=600,  # Cache preflight for 10 minutes
-)
+if allowed_origins_env:
+    origins = [o.strip() for o in allowed_origins_env.split(",") if o.strip()]
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+else:
+    # Fallback to allow all for easy deployment and local development
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=False,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
 # Include routers
 app.include_router(scan_router)
@@ -60,7 +58,7 @@ async def root():
     }
 
 if __name__ == "__main__":
-    print("🚀 Starting Argus AI Backend...")
-    print("📚 API Documentation: http://localhost:8000/docs")
-    print("🔗 Frontend: http://localhost:8080")
+    print("Starting Argus AI Backend...")
+    print("API Documentation: http://localhost:8000/docs")
+    print("Frontend: http://localhost:8080")
     uvicorn.run(app, host="0.0.0.0", port=8000)

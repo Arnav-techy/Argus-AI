@@ -61,43 +61,39 @@ const response = await analyzeSecurityIssueDescription(
 
     
     if (response.success) {
-      // Get the real AI analysis
-      const aiAnalysis = response.data.analysis;
-      console.log('Real AI Analysis received:', aiAnalysis.substring(0, 500) + '...');
+      // Use the structured data returned from the API
+      const { title, severity, ai_analysis } = response.data;
       
-      // Parse severity from AI response
-      let severity = "MEDIUM";
-      if (aiAnalysis.includes('Critical') || aiAnalysis.includes('CRITICAL')) severity = "CRITICAL";
-      else if (aiAnalysis.includes('High') || aiAnalysis.includes('HIGH')) severity = "HIGH";
-      else if (aiAnalysis.includes('Low') || aiAnalysis.includes('LOW')) severity = "LOW";
+      console.log('Structured AI Analysis received:', response.data);
       
-      // Extract a title from the analysis
-      const lines = aiAnalysis.split('\n');
-      const title = lines.find(line => 
-        line.includes('Vulnerability') || 
-        line.includes('Security') || 
-        line.includes('Issue')
-      ) || "Security Analysis";
-      
-      // Format for UI
+      // Calculate CVSS based on severity
+      const calcSeverity = (severity || 'MEDIUM').toUpperCase();
+      const cvss = calcSeverity === "CRITICAL" ? 9.0 : 
+                  calcSeverity === "HIGH" ? 7.5 : 
+                  calcSeverity === "MEDIUM" ? 5.0 : 3.0;
+
+      // Format for UI depending on if ai_analysis is an object or a raw string (backward compatibility)
+      let parsedAiAnalysis: any = ai_analysis ? { ...ai_analysis } : {};
+      if (typeof ai_analysis === 'string') {
+        parsedAiAnalysis = {
+          secure_fix: extractSecureFix(ai_analysis),
+          immediate_actions: extractImmediateActions(ai_analysis),
+          risk_explanation: extractRiskExplanation(ai_analysis),
+          full_analysis: ai_analysis
+        };
+      }
+
       setAnalysisResult({
-        severity: severity,
-        title: title.length > 60 ? title.substring(0, 60) + "..." : title,
-        cvss_score: severity === "CRITICAL" ? 9.0 : 
-                   severity === "HIGH" ? 7.5 : 
-                   severity === "MEDIUM" ? 5.0 : 3.0,
-        ai_analysis: {
-          secure_fix: extractSecureFix(aiAnalysis),
-          immediate_actions: extractImmediateActions(aiAnalysis),
-          risk_explanation: extractRiskExplanation(aiAnalysis),
-          full_analysis: aiAnalysis
-        }
+        severity: calcSeverity,
+        title: title ? (title.length > 60 ? title.substring(0, 60) + "..." : title) : "Security Analysis",
+        cvss_score: cvss,
+        ai_analysis: parsedAiAnalysis
       });
       
       setShowResults(true);
       toast({
         title: "AI Analysis Complete",
-        description: `Found ${severity.toLowerCase()} severity security issue`,
+        description: `Found ${calcSeverity.toLowerCase()} severity security issue`,
       });
     } else {
       throw new Error("Analysis failed");
