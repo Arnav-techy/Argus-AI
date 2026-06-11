@@ -8,7 +8,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from backend.routes.scan import router as scan_router 
+from routes.scan import router as scan_router
 import uvicorn
 
 app = FastAPI(

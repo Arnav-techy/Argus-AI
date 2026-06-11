@@ -1,3 +1,6 @@
 [tool.pyrefly]
 # Tell Pyrefly to look for dependencies inside the backend virtual environment
-site-package-path = "backend/venv/Lib/site-packages"
+site-package-path = ["backend/venv/Lib/site-packages"]
+site_package_path = ["backend/venv/Lib/site-packages"]
+search-path = ["backend"]
+search_path = ["backend"]

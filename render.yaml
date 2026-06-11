@@ -12,12 +12,12 @@ services:
       - key: PYTHON_VERSION
         value: 3.11.0
 
-  # React/Vite Frontend Static Site
-  - type: static
+  - type: web
     name: argus-ai-frontend
+    env: static
     rootDir: securescan-ai-main
     buildCommand: npm install && npm run build
-    publishPath: dist
+    staticPublishPath: dist
     envVars:
       - key: VITE_API_URL
         fromService:
